@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Data Augmentation Audit Checklist</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #ffffff;
+      color: #222;
+      max-width: 900px;
+      margin: auto;
+      padding: 2em;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      color: #003366;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 1em;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 0.6em;
+      text-align: left;
+    }
+    ul {
+      padding-left: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Data Augmentation Audit Checklist</h1>
+  <p><strong>For AI/ML Systems</strong></p>
+  <p>This checklist ensures data augmentation (DA) is applied correctly, fairly, and in compliance with best practices.</p>
+
+  <h2>1. Documentation & Process Review</h2>
+  <ul>
+    <li>DA techniques are clearly documented (e.g., image rotation, text synonym replacement).</li>
+    <li>Tools/libraries used are listed (e.g., albumentations, NLPAug, torchvision).</li>
+    <li>Augmentation parameters (e.g., rotation degrees, noise levels) are recorded.</li>
+    <li>Scope: DA is applied only to training data (not validation/test sets).</li>
+  </ul>
+
+  <h2>2. Quality & Impact Assessment</h2>
+  <h3>A. Data Inspection</h3>
+  <ul>
+    <li>Manual review of augmented samples (e.g., check for unrealistic distortions).</li>
+    <li>Statistical comparison of original vs. augmented data (mean, variance, class balance).</li>
+    <li>No data leakage (augmentation doesn’t mix training/validation data).</li>
+  </ul>
+
+  <h3>B. Model Performance</h3>
+  <ul>
+    <li>Baseline accuracy (unaugmented data) is recorded.</li>
+    <li>Augmented model accuracy is compared (should improve generalizability).</li>
+    <li>Overfitting check: Augmentation reduces gap between train/test accuracy.</li>
+  </ul>
+
+  <h2>3. Bias & Fairness Checks</h2>
+  <ul>
+    <li>Protected attributes (gender, race, etc.) are balanced post-augmentation.</li>
+    <li>Stratified augmentation is used (minority classes are fairly augmented).</li>
+    <li>Bias metrics (e.g., disparate impact ratio) are computed (using AIF360/What-If Tool).</li>
+  </ul>
+
+  <h2>4. Compliance & Security</h2>
+  <ul>
+    <li>Privacy: Augmented data complies with GDPR/CCPA (if personal data is used).</li>
+    <li>Synthetic data: If GANs/generative AI is used, ensure no PII leakage.</li>
+    <li>Audit logs: DA parameters are version-controlled (e.g., in MLflow/DVC).</li>
+  </ul>
+
+  <h2>5. Reproducibility & Governance</h2>
+  <ul>
+    <li>Same augmentation can be reapplied in retraining.</li>
+    <li>Human oversight: Critical datasets (e.g., medical, legal) are manually validated.</li>
+    <li>Error handling: Failed augmentations (e.g., corrupted images) are logged.</li>
+  </ul>
+
+  <h2>Final Recommendations (If Issues Found)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Issue</th>
+        <th>Action Item</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Unrealistic augmentations</td>
+        <td>Reduce distortion intensity or filter bad samples.</td>
+      </tr>
+      <tr>
+        <td>Bias in augmented data</td>
+        <td>Use reweighting/adversarial debiasing.</td>
+      </tr>
+      <tr>
+        <td>No version control</td>
+        <td>Enforce logging in ML metadata stores.</td>
+      </tr>
+      <tr>
+        <td>Overfitting persists</td>
+        <td>Tune augmentation strength or add dropout.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Audit Deliverables</h2>
+  <ul>
+    <li>Report summarizing findings (pass/fail per checklist item).</li>
+    <li>Bias metrics (if applicable).</li>
+    <li>Recommendations for improvement.</li>
+  </ul>
+
+  <h2>Next Steps</h2>
+  <p>For high-risk AI systems (e.g., healthcare, hiring), recommend third-party validation. Schedule a follow-up audit after fixes are implemented.</p>
+</body>
+</html>
