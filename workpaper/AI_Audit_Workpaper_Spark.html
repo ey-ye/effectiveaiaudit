@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Audit Workpaper - Spark/PySpark</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; }
+        h1, h2, h3 { color: #2c3e50; }
+        code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+        pre { background: #f9f9f9; padding: 10px; border: 1px solid #ddd; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 10px; border: 1px solid #ccc; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<h1>Spark/PySpark Data Preprocessing Audit Workpaper</h1>
+
+<h2>Audit Focus Area</h2>
+<p>Evaluating distributed computing risks in Spark-based preprocessing pipelines:</p>
+<ul>
+    <li>Parallel Operation Risks: Order/aggregation inconsistencies</li>
+    <li>Silent Type Coercion: Implicit data type changes</li>
+    <li>Opaque Logic: Hidden transformations in notebook environments</li>
+</ul>
+
+<h2>Evidence Collection Methodology</h2>
+<h3>1. Parallel Operation Inconsistencies</h3>
+<p><strong>Where to Find Evidence:</strong></p>
+<table>
+    <tr><th>Risk Indicator</th><th>Investigation Method</th><th>Test Code Example</th></tr>
+    <tr><td>Non-deterministic aggregations</td><td>Check for reduceByKey() without explicit ordering</td><td>df.groupBy().agg() vs df.repartition().groupBy().agg()</td></tr>
+    <tr><td>Order-sensitive operations</td><td>Search for zipWithIndex(), collect() before processing</td><td>df.orderBy().collect() vs unordered operations</td></tr>
+    <tr><td>Partition skew</td><td>Examine .rdd.getNumPartitions() and partition sizes</td><td>df.rdd.glom().map(len).collect()</td></tr>
+</table>
+
+<pre><code>results = []
+for _ in range(5):
+    df = spark.createDataFrame(data).repartition(2)
+    results.append(df.groupBy("key").agg(F.sum("value")).collect())
+assert all(r == results[0] for r in results), "Non-deterministic aggregations detected"</code></pre>
+
+<h3>2. Silent Type Coercion</h3>
+<p><strong>Where to Find Evidence:</strong></p>
+<table>
+    <tr><th>Coercion Risk</th><th>Spark Operations to Check</th><th>Diagnostic Method</th></tr>
+    <tr><td>Numeric precision loss</td><td>withColumn() casts, UDFs</td><td>Schema comparison before/after</td></tr>
+    <tr><td>String truncation</td><td>substring(), cast("string")</td><td>Length distribution analysis</td></tr>
+    <tr><td>Null handling</td><td>na.fill(), coalesce()</td><td>Null count comparison</td></tr>
+</table>
+
+<pre><code>original_dtypes = dict(df.dtypes)
+processed_dtypes = dict(processed_df.dtypes)
+
+for col in original_dtypes:
+    if original_dtypes[col] != processed_dtypes[col]:
+        print(f"Type changed: {col} ({original_dtypes[col]} → {processed_dtypes[col]})")</code></pre>
+
+<h3>3. Hidden Notebook Logic</h3>
+<p><strong>Where to Find Evidence:</strong></p>
+<table>
+    <tr><th>Obfuscation Pattern</th><th>Detection Method</th><th>Remediation Check</th></tr>
+    <tr><td>Cell execution order issues</td><td>Check notebook metadata timestamps</td><td>Lineage reconstruction</td></tr>
+    <tr><td>Undocumented temp views</td><td>spark.catalog.listTables()</td><td>View dependency graph</td></tr>
+    <tr><td>Unversioned intermediate writes</td><td>dbutils.fs.ls() analysis</td><td>Delta Lake versioning check</td></tr>
+</table>
+
+<pre><code>defined_functions = [obj for obj in globals() if callable(globals()[obj])]
+spark_ops = [f for f in defined_functions if '_df' in f or 'tmp_' in f]
+
+if len(spark_ops) > 3:
+    print(f"Warning: {len(spark_ops)} potential hidden transformations found")</code></pre>
+
+<h2>Workpaper Template</h2>
+<h3>Parallel Processing Findings</h3>
+<table>
+    <tr><th>Operation</th><th>Partition Count</th><th>Result Variance</th><th>Severity</th></tr>
+    <tr><td>groupBy().mean()</td><td>200</td><td>±0.3% across runs</td><td>Medium</td></tr>
+    <tr><td>join()</td><td>100</td><td>2% record count fluctuation</td><td>High</td></tr>
+    <tr><td>window().rank()</td><td>Default</td><td>Inconsistent ordering</td><td>Critical</td></tr>
+</table>
+
+<h3>Type Coercion Findings</h3>
+<table>
+    <tr><th>Column</th><th>Original Type</th><th>Final Type</th><th>Data Impact</th></tr>
+    <tr><td>user_id</td><td>BIGINT</td><td>DOUBLE</td><td>14% precision loss</td></tr>
+    <tr><td>geo_coords</td><td>STRING</td><td>VARCHAR(20)</td><td>Truncation observed</td></tr>
+    <tr><td>price</td><td>DECIMAL(18,4)</td><td>FLOAT</td><td>0.7% rounding error</td></tr>
+</table>
+
+<h3>Notebook Obfuscation Findings</h3>
+<table>
+    <tr><th>Notebook</th><th>Hidden Cells</th><th>Temp Views</th><th>Lineage Gaps</th></tr>
+    <tr><td>ETL_Part1</td><td>12 (34%)</td><td>7 undocumented</td><td>3 key transforms</td></tr>
+    <tr><td>Feature_Eng</td><td>8 (22%)</td><td>4 cross-notebook</td><td>Window spec missing</td></tr>
+</table>
+
+<h2>Key Risks</h2>
+<ul>
+    <li><strong>Critical:</strong> Financial aggregations vary by ±1.2% due to partitioning</li>
+    <li><strong>High:</strong> 18 columns undergo silent type coercion without validation</li>
+    <li><strong>Medium:</strong> 40% of preprocessing logic buried in notebook cells</li>
+</ul>
+
+<h2>Recommendations</h2>
+<h3>For Parallelism Issues</h3>
+<pre><code>spark.conf.set("spark.sql.shuffle.partitions", 200)
+spark.conf.set("spark.sql.execution.sortBeforeRepartition", True)
+
+def deterministic_agg(df, group_col, agg_expr):
+    return df.repartition(200, group_col).groupBy(group_col).agg(agg_expr)</code></pre>
+
+<h3>For Type Safety</h3>
+<pre><code>def validate_schema(input_schema):
+    def decorator(func):
+        def wrapper(*args):
+            df = func(*args)
+            assert df.schema == input_schema, "Schema validation failed"
+            return df
+        return wrapper
+    return decorator</code></pre>
+
+<h3>For Notebook Transparency</h3>
+<pre><code>import IPython
+IPython.get_ipython().events.register('post_run_cell', log_transformation)
+
+from databricks import workflows</code></pre>
+
+<h2>Auditor Notes</h2>
+<p><strong>Required Attachments:</strong></p>
+<ul>
+    <li>Partitioning strategy documentation</li>
+    <li>Schema evolution timeline</li>
+    <li>Notebook execution DAG reconstruction</li>
+</ul>
+
+<h3>Sign-off:</h3>
+<table>
+    <tr><th>Auditor</th><th>Data Engineer</th><th>ML Owner</th><th>Date</th></tr>
+    <tr><td>[Your Name]</td><td>[Eng Name]</td><td>[Owner Name]</td><td>[Date]</td></tr>
+</table>
+
+<h3>Standards References:</h3>
+<ul>
+    <li>Spark Tuning Guide (Deterministic Execution)</li>
+    <li>GDPR Article 25 (Data Integrity by Design)</li>
+    <li>FINRA 4511 (Financial Aggregation Accuracy)</li>
+</ul>
+
+</body>
+</html>

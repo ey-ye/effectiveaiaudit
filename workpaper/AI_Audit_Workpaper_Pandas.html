@@ -1,0 +1,93 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Audit Workpaper: Pandas Preprocessing Risks</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; max-width: 900px; }
+        h1, h2 { color: #2c3e50; }
+        code, pre { background-color: #f4f4f4; padding: 5px; display: block; white-space: pre-wrap; border-left: 4px solid #ccc; margin: 10px 0; }
+        ul { margin-top: 0; }
+        .section { margin-bottom: 40px; }
+        .footer { margin-top: 60px; font-size: 0.9em; color: #777; border-top: 1px solid #ccc; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>AI Data Preprocessing Audit Workpaper: Pandas Data Handling Risks</h1>
+    <p><strong>Prepared by:</strong> Erica [Last Name]</p>
+    <p><strong>Version:</strong> v0.1 | <strong>Status:</strong> Internal Working Draft</p>
+
+    <div class="section">
+        <h2>Audit Focus Area</h2>
+        <p>Evaluating potential data integrity risks in Pandas-based preprocessing pipelines that may lead to:</p>
+        <ul>
+            <li>Silent data loss (unlogged row/column deletions)</li>
+            <li>Lack of lineage tracking (untraceable transformations)</li>
+            <li>Overaggressive filtering (regex or .dropna() biases)</li>
+            <li>Cultural/dialect erasure (slang removal via rigid regex rules)</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Evidence Collection Procedures</h2>
+
+        <h3>1. Silent Row/Column Drops</h3>
+        <p><strong>Where to Find Evidence:</strong></p>
+        <ul>
+            <li>Code Review: Search for <code>.drop()</code>, <code>df[df.col.isna()]</code>, or boolean masking without logging.</li>
+            <li>Version Control Diffs: Compare input/output row counts between commits (Git history).</li>
+            <li>Pipeline Logs: Check if deletion counts are recorded (e.g., <code>print(f"Dropped {{len(df_before) - len(df_after)}} rows")</code>).</li>
+        </ul>
+        <p><strong>Test:</strong></p>
+        <pre><code>assert "dropped_rows" in preprocessing_logs, "No audit trail for row drops"</code></pre>
+
+        <h3>2. No Lineage Tracking</h3>
+        <p><strong>Where to Find Evidence:</strong></p>
+        <ul>
+            <li>Metadata Checks: Look for <code>.attrs</code> or custom lineage tags (e.g., <code>df.attrs["source"]</code>).</li>
+            <li>Pipeline Tools: Check if tools like MLflow, Pachyderm, or OpenLineage are used.</li>
+            <li>Data Provenance: Verify if intermediate datasets are versioned (e.g., <code>df.to_parquet("data_v1.2.parquet")</code>).</li>
+        </ul>
+        <p><strong>Test:</strong></p>
+        <pre><code>assert hasattr(df, "_file_origin"), "No lineage metadata attached"</code></pre>
+
+        <h3>3. Overaggressive Regex Filtering</h3>
+        <p><strong>Where to Find Evidence:</strong></p>
+        <ul>
+            <li>Regex Patterns: Review <code>df.str.replace()</code> or <code>.str.contains()</code> for overly strict rules (e.g., <code>r"[^a-zA-Z0-9]"</code> removing non-Latin scripts).</li>
+            <li>Bias Testing: Compare pre/post-filtering demographics (e.g., minority language tokens in NLP data).</li>
+            <li>False Positive Logs: Check if rejected samples are reviewed (e.g., <code>df[~df.text.str.match(regex)]</code> saved to a log).</li>
+        </ul>
+        <p><strong>Test:</strong></p>
+        <pre><code>if "[\u0600-\u06FF]" not in allowed_chars:  # Arabic script example
+    raise ValueError("Regex filters out non-English scripts")</code></pre>
+
+        <h3>4. .dropna() Erasing Minority Data</h3>
+        <p><strong>Where to Find Evidence:</strong></p>
+        <ul>
+            <li>Missing Value Analysis: Audit <code>.isna().sum()</code> per subgroup before/after drops.</li>
+            <li>Thresholds: Verify if <code>thresh=</code> or <code>subset=</code> params disproportionately affect rare categories.</li>
+            <li>Alternative Methods: Check if imputation (e.g., <code>.fillna()</code>) was considered but not used.</li>
+        </ul>
+        <p><strong>Test:</strong></p>
+        <pre><code>minority_loss = (df["ethnicity"].value_counts(normalize=True) - df_clean["ethnicity"].value_counts(normalize=True))
+assert minority_loss.max() &lt; 0.05, "dropna() disproportionately affected minority groups"</code></pre>
+
+        <h3>5. Slang/Dialects Filtered by Regex</h3>
+        <p><strong>Where to Find Evidence:</strong></p>
+        <ul>
+            <li>Keyword Lists: Search for exclusion terms (e.g., <code>r"\bain’t\b|\by’all\b"</code>).</li>
+            <li>Cultural Bias Tests: Use fairness tools like Aequitas to measure dialect representation loss.</li>
+            <li>Human Review: Spot-check filtered samples for false positives (e.g., African American Vernacular English).</li>
+        </ul>
+        <p><strong>Test:</strong></p>
+        <pre><code>dialect_phrases = ["finna", "hella", "yinz"]
+assert any(phrase in df.text for phrase in dialect_phrases), "Dialect removed by preprocessing"</code></pre>
+    </div>
+
+    <div class="footer">
+        &copy; 2025 Erica [Last Name] – AI Audit Framework, Internal Draft. Not for public distribution.
+    </div>
+</body>
+</html>

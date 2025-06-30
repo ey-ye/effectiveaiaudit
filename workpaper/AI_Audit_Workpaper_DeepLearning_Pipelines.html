@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>tf.data / PyTorch DataLoader Preprocessing Audit Workpaper</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 20px; }
+        h1, h2, h3 { color: #2A5D9F; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        code, pre { background-color: #f9f9f9; border: 1px solid #ccc; padding: 6px; display: block; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<h1>tf.data / PyTorch DataLoader Preprocessing Audit Workpaper</h1>
+
+<h2>Audit Focus Area</h2>
+<p>Evaluating risks in deep learning data pipeline implementations:</p>
+<ul>
+    <li>Entangled Preprocessing: Transformations baked into training loops</li>
+    <li>Bias Confounding: Difficulty separating model vs data bias</li>
+    <li>Augmentation Distortion: Truth-altering modifications during loading</li>
+</ul>
+
+<h2>Evidence Collection Methodology</h2>
+<h3>1. Baked-in Preprocessing</h3>
+<table>
+    <tr><th>Risk Indicator</th><th>Investigation Method</th><th>Code Pattern Examples</th></tr>
+    <tr><td>Lambda layers in model</td><td>Inspect model.summary()/print(model)</td><td>tf.keras.layers.Lambda(lambda x: x/255)</td></tr>
+    <tr><td>Opaque map() calls</td><td>Audit dataset.map() operations</td><td>.map(preprocess_fn, num_parallel_calls=4)</td></tr>
+    <tr><td>Training-loop transforms</td><td>Check for inline tensor ops</td><td>batch[:,0:1] *= 100 in training step</td></tr>
+</table>
+<pre><code>python
+# Detect entangled preprocessing (TensorFlow)
+if any('lambda' in layer.name for layer in model.layers):
+    print("Warning: Preprocessing baked into model architecture")
+
+# PyTorch DataLoader inspection
+for transform in train_loader.dataset.transform.transforms:
+    if isinstance(transform, torch.nn.Module):
+        print("Warning: NN-based transform in data pipeline")
+</code></pre>
+
+<h3>2. Bias Confounding</h3>
+<table>
+    <tr><th>Bias Type</th><th>Detection Approach</th><th>Diagnostic Tools</th></tr>
+    <tr><td>Data sampling</td><td>Check WeightedRandomSampler usage</td><td>Class distribution before/after loading</td></tr>
+    <tr><td>Feature bias</td><td>Compare raw vs preprocessed statistics</td><td>pandas_profiling comparison</td></tr>
+    <tr><td>Label leakage</td><td>Inspect augmentation transforms</td><td>Test if transform(x) affects y</td></tr>
+</table>
+<pre><code>python
+# Compare raw vs preprocessed distributions
+raw_mean = raw_data[:,0].mean()
+loader_mean = next(iter(train_loader))[0][:,0].mean()
+
+if abs(raw_mean - loader_mean) > 3*raw_data[:,0].std():
+    print(f"Significant distribution shift: {raw_mean} → {loader_mean}")
+</code></pre>
+
+<h3>3. Augmentation Distortion</h3>
+<table>
+    <tr><th>Distortion Risk</th><th>Augmentation Examples</th><th>Validation Method</th></tr>
+    <tr><td>Truth-altering</td><td>Random erasing of lesions</td><td>Medical image QA checks</td></tr>
+    <tr><td>Label corruption</td><td>Rotation of oriented objects</td><td>Bounding box verification</td></tr>
+    <tr><td>Signal destruction</td><td>Aggressive audio noise</td><td>Waveform similarity index</td></tr>
+</table>
+<pre><code>python
+# Validate augmentations preserve essential truth
+original_img, label = raw_dataset[0]
+augmented_img = train_loader.dataset.transform(original_img)
+
+if not medical_qa_check(original_img, augmented_img):
+    print("Augmentation violates diagnostic truth criteria")
+</code></pre>
+
+<h2>Workpaper Template</h2>
+<h3>Entangled Preprocessing Findings</h3>
+<table>
+    <tr><th>Location</th><th>Preprocessing Type</th><th>Entanglement Level</th><th>Severity</th></tr>
+    <tr><td>Model Layer 1</td><td>Normalization (Lambda)</td><td>Hardcoded in graph</td><td>Critical</td></tr>
+    <tr><td>dataset.map()</td><td>Text tokenization</td><td>Opaque parallel ops</td><td>High</td></tr>
+    <tr><td>Training Step</td><td>Channel swapping</td><td>Inline tensor ops</td><td>Medium</td></tr>
+</table>
+
+<h3>Bias Confounding Findings</h3>
+<table>
+    <tr><th>Bias Source</th><th>Preprocessing Stage</th><th>Impact Metric</th><th>Confounding Factor</th></tr>
+    <tr><td>Sampler weights</td><td>DataLoader init</td><td>Class F1 variance</td><td>±8% from raw data</td></tr>
+    <tr><td>Normalization</td><td>TFRecord decoding</td><td>Feature skew</td><td>2.3σ shift</td></tr>
+    <tr><td>Crop padding</td><td>TorchVision transform</td><td>Edge artifact rate</td><td>12% false positives</td></tr>
+</table>
+
+<h3>Augmentation Distortion Findings</h3>
+<table>
+    <tr><th>Augmentation</th><th>Domain</th><th>Truth Alteration</th><th>QA Failure Rate</th></tr>
+    <tr><td>RandomErasing</td><td>Medical Imaging</td><td>5% lesion removal</td><td>18/200 cases</td></tr>
+    <tr><td>ColorJitter</td><td>Satellite</td><td>NDVI corruption</td><td>32% spectral shift</td></tr>
+    <tr><td>SpeedPerturb</td><td>Audio</td><td>Phoneme distortion</td><td>0.4 WER increase</td></tr>
+</table>
+
+<h2>Key Risks</h2>
+<ul>
+    <li>Critical: CT scan window-leveling baked into model prevents DICOM validation</li>
+    <li>High: Text preprocessing removes rare dialects (AAVE retention <2%)</li>
+    <li>Medium: 14% of bounding boxes misaligned after rotation augmentations</li>
+</ul>
+
+<h2>Recommendations</h2>
+<h3>For Disentanglement</h3>
+<pre><code>python
+# PyTorch best practice
+class AuditableTransform:
+    def __call__(self, x):
+        self.last_params = {'operation': 'brightness', 'factor': 0.2}
+        return adjust_brightness(x, 0.2)
+
+# TensorFlow solution
+preprocess_fn = tf.saved_model.save(
+    tf.Module(), 'preprocessor')  # Versioned separately
+</code></pre>
+
+<h3>For Bias Isolation</h3>
+<pre><code>python
+# Bias attribution framework
+def compare_biases(raw_data, loader):
+    raw_stats = calculate_stats(raw_data)
+    loaded_stats = calculate_stats(concat_batches(loader))
+    return {
+        'data_bias': raw_stats,
+        'pipeline_bias': loaded_stats - raw_stats
+    }
+</code></pre>
+
+<h3>For Truth-Preserving Augmentation</h3>
+<pre><code>python
+# Medical imaging guardrails
+class SafeAugment:
+    def __call__(self, img, mask):
+        if random() < 0.5:
+            assert mask.sum() == rotate(mask).sum(), "Augmentation destroyed lesions"
+            return rotate(img), rotate(mask)
+        return img, mask
+</code></pre>
+
+<h2>Auditor Notes</h2>
+<ul>
+    <li>Required Attachments:
+        <ul>
+            <li>Model architecture diagram highlighting preprocessing layers</li>
+            <li>Side-by-side raw vs augmented samples (minimum 10 examples)</li>
+            <li>Statistical comparison tables of input/output distributions</li>
+        </ul>
+    </li>
+</ul>
+
+<h3>Sign-off:</h3>
+<table>
+    <tr><th>Auditor</th><th>ML Engineer</th><th>Domain Expert</th><th>Date</th></tr>
+    <tr><td>[Your Name]</td><td>[Eng Name]</td><td>[MD/PhD Name]</td><td>[Date]</td></tr>
+</table>
+
+<h2>Standards References:</h2>
+<ul>
+    <li>DICOM PS3.15 (Medical Image Transformations)</li>
+    <li>ACL Rolling Review (NLP Preprocessing)</li>
+    <li>MIL-STD-2525D (Geospatial Truth Preservation)</li>
+</ul>
+
+</body>
+</html>

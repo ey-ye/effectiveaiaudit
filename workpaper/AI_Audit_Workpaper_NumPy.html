@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Data Preprocessing Audit Workpaper: NumPy</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; }
+        h1, h2, h3 { color: #2c3e50; }
+        code, pre { background: #f4f4f4; padding: 8px; display: block; white-space: pre-wrap; border-left: 4px solid #ccc; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>AI Data Preprocessing Audit Workpaper: NumPy Data Handling Risks</h1>
+
+    <h2>Audit Focus Area</h2>
+    <p>Evaluating potential data integrity risks in NumPy-based preprocessing pipelines that may lead to:</p>
+    <ul>
+        <li>Low semantic awareness (mathematically valid but logically incorrect operations)</li>
+        <li>No audit trail (untraceable value transformations)</li>
+        <li>Silent value coercion/clipping (unlogged data modifications)</li>
+    </ul>
+
+    <h2>Evidence Collection Procedures</h2>
+
+    <h3>1. Low Semantic Awareness</h3>
+    <strong>Where to Find Evidence:</strong>
+    <ul>
+        <li>Type Conversions: .astype() used on semantically sensitive data</li>
+        <li>Mathematical Operations: Averaging ordinal/categorical data</li>
+        <li>Array Reshaping: Misuse of .reshape()</li>
+    </ul>
+    <strong>Example Tests:</strong>
+    <pre><code>if np.issubdtype(df['patient_id'].dtype, np.floating):
+    raise ValueError("Numeric IDs coerced to float - may lose precision")
+
+if 'Likert_scale' in df.columns and np.mean(df['Likert_scale']) not in [1,2,3,4,5]:
+    print("Warning: Ordinal data treated as interval")
+</code></pre>
+
+    <h3>2. No Audit Trail</h3>
+    <strong>Where to Find Evidence:</strong>
+    <ul>
+        <li>In-place operations without logging</li>
+        <li>Absence of checksum/hash logs</li>
+        <li>Unversioned np.save() usage</li>
+    </ul>
+    <strong>Example Tests:</strong>
+    <pre><code>assert 'input_mean' in transformation_metadata, "No record of pre-normalization stats"
+assert hashlib.md5(input_array).hexdigest() == saved_checksum, "Input altered before processing"
+</code></pre>
+
+    <h3>3. Silent Value Coercion/Clipping</h3>
+    <strong>Where to Find Evidence:</strong>
+    <ul>
+        <li>Type casting via np.nan_to_num(), .astype()</li>
+        <li>Unconstrained np.clip(), np.round()</li>
+        <li>Risk of silent overflow in int32 operations</li>
+    </ul>
+    <strong>Example Tests:</strong>
+    <pre><code>if np.max(output_array) == upper_bound:
+    print("Warning: Values may have been silently clipped")
+
+if (input_array.dtype == np.int32) and (np.max(input_array) > 2**30):
+    print("Warning: Potential int32 overflow risk")
+</code></pre>
+
+    <h2>Workpaper Template</h2>
+    <table>
+        <thead>
+            <tr><th>Risk</th><th>Test Performed</th><th>Evidence Location</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Semantic unawareness</td><td>Ordinal data averaged</td><td>normalize.py line 22</td><td>FAIL</td></tr>
+            <tr><td>No audit trail</td><td>Missing input checksums</td><td>preprocess_data.ipynb</td><td>FAIL</td></tr>
+            <tr><td>Silent value clipping</td><td>5% of values at upper bound</td><td>scale_features() output</td><td>WARNING</td></tr>
+            <tr><td>Type coercion</td><td>ID field converted to float64</td><td>Git commit #a1b3d4</td><td>FAIL</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Key Findings</h2>
+    <ul>
+        <li><strong>Critical:</strong> Patient IDs lost precision when coerced to float64</li>
+        <li><strong>High:</strong> 18% of temperature readings silently clipped to 100.0</li>
+        <li><strong>Medium:</strong> No versioning of intermediate NumPy arrays</li>
+    </ul>
+
+    <h2>Recommendations</h2>
+
+    <h3>Semantic Guards</h3>
+    <pre><code>def safe_convert_to_int(arr):
+    if not np.all(np.modf(arr)[0] == 0):
+        raise ValueError("Float-to-int conversion would lose precision")
+    return arr.astype(int)
+</code></pre>
+
+    <h3>Audit Trail</h3>
+    <pre><code>def logged_operation(arr, op_name):
+    print(f"{op_name} - Input hash: {hashlib.sha256(arr.tobytes()).hexdigest()}")
+    return arr
+</code></pre>
+
+    <h3>Bounds Checking</h3>
+    <pre><code>def safe_clip(arr, min_val, max_val):
+    n_clipped = np.sum((arr < min_val) | (arr > max_val))
+    if n_clipped > 0:
+        warnings.warn(f"Clipped {n_clipped} values")
+    return np.clip(arr, min_val, max_val)
+</code></pre>
+
+    <h2>Auditor Notes</h2>
+    <p><strong>Attach:</strong></p>
+    <ul>
+        <li>Pre/post-processing value distribution plots</li>
+        <li>Type conversion validation reports</li>
+        <li>Example clipped values from testing</li>
+    </ul>
+
+    <p><strong>Sign-off:</strong></p>
+    <table>
+        <thead><tr><th>Auditor</th><th>Date</th><th>Reviewer</th></tr></thead>
+        <tbody><tr><td>[Your Name]</td><td>[Date]</td><td>[AI Governance Lead]</td></tr></tbody>
+    </table>
+
+    <h2>Framework References</h2>
+    <ul>
+        <li>NIST SP 800-218 (Secure Software Development)</li>
+        <li>ISO/IEC 23053 (AI System Engineering)</li>
+        <li>GDPR Article 22 (Automated Decision Making)</li>
+    </ul>
+</body>
+</html>

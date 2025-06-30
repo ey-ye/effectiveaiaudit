@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Audit Workpaper - Erica</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1 { color: #2e6c80; }
+        h2 { color: #3e3e3e; margin-top: 30px; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        table, th, td { border: 1px solid #ccc; }
+        th, td { padding: 10px; text-align: left; }
+        blockquote { background: #f9f9f9; border-left: 5px solid #ccc; margin: 1em 0; padding: 0.5em 10px; }
+        footer { margin-top: 40px; font-size: small; color: gray; }
+    </style>
+</head>
+<body>
+<h1>AI Data Preprocessing Audit Workpapers</h1>
+<p><strong>Prepared by:</strong> Erica [Surname]</p>
+<p><em>This is a professional working draft intended for internal audit development and review within the assurance and risk community. Not for redistribution or external citation at this time.</em></p>
+
+<h2>Audit Focus: Pandas</h2>
+<ul>
+    <li>Silent data loss (row/column drops)</li>
+    <li>Missing lineage of transformations</li>
+    <li>Overaggressive regex filters</li>
+    <li>Cultural or dialect bias from preprocessing</li>
+</ul>
+
+<h2>Audit Procedures (Sample)</h2>
+<table>
+<tr><th>Location</th><th>What to Look For</th></tr>
+<tr><td>Notebook or pipeline script</td><td>Presence of .drop(), .dropna(), boolean masks</td></tr>
+<tr><td>Regex filters</td><td>Stripping out non-Latin scripts or dialects</td></tr>
+<tr><td>Logs/version control</td><td>Row counts before/after preprocessing steps</td></tr>
+</table>
+
+<blockquote># assert "dropped_rows" in preprocessing_logs, "No audit trail for row deletions"</blockquote>
+<blockquote># assert any(term in df.text for term in ["finna", "hella", "y’all"])</blockquote>
+
+<footer>
+    <p>This working document forms part of the AI Audit Framework initiative.</p>
+    <p>For internal use only. Please consult Erica [Surname] before distribution.</p>
+</footer>
+</body>
+</html>

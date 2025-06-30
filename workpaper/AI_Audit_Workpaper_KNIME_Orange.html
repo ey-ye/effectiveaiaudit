@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KNIME/Orange Data Preprocessing Audit Workpaper</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+        h1, h2, h3 { color: #2C3E50; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f4f4f4; }
+        code { background-color: #f9f9f9; padding: 2px 4px; font-size: 90%; }
+        pre { background: #f9f9f9; padding: 10px; border-left: 3px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>KNIME/Orange Data Preprocessing Audit Workpaper</h1>
+    <h2>Audit Focus Area</h2>
+    <p>Evaluating risks in visual workflow tools for data preprocessing:</p>
+    <ul>
+        <li>GUI Opacity: Hidden transformations in visual interfaces</li>
+        <li>Non-Human-Readable Exports: XML-based workflow definitions</li>
+        <li>Reproducibility Gaps: Drag-and-drop operations without version control</li>
+    </ul>
+
+    <h2>Evidence Collection Methodology</h2>
+    <h3>1. GUI Pipeline Opacity</h3>
+    <table>
+        <tr><th>Risk Indicator</th><th>Investigation Method</th><th>Documentation Reference</th></tr>
+        <tr><td>Buried node configurations</td><td>Right-click → "Configure" on each node</td><td>KNIME Node Description vs Actual Settings</td></tr>
+        <tr><td>Hidden data flows</td><td>Check "Workflow Cohesion" metrics</td><td>Orange Canvas Connection Graph</td></tr>
+        <tr><td>Default parameter risks</td><td>Compare node settings to company SOPs</td><td>KNIME Analytics Platform Cookbook</td></tr>
+    </table>
+    <p><strong>Test Procedure:</strong></p>
+    <ul>
+        <li>Generate workflow visualization (File → Export → Workflow Image)</li>
+        <li>Cross-reference with node configuration dialogs</li>
+        <li>Verify tooltips match actual operations</li>
+    </ul>
+
+    <h3>2. Non-Human-Readable Exports</h3>
+    <table>
+        <tr><th>File Type</th><th>Readability Issue</th><th>Mitigation Check</th></tr>
+        <tr><td>.knwf (KNIME)</td><td>Binary blobs in XML</td><td>Search for config-key mappings</td></tr>
+        <tr><td>.ows (Orange)</td><td>Minified JSON</td><td>Validate with python -m json.tool</td></tr>
+        <tr><td>Workflow backups</td><td>ZIP with internal hashes</td><td>Checksum verification reports</td></tr>
+    </table>
+    <pre><code>import xml.etree.ElementTree as ET
+tree = ET.parse('workflow.knwf')
+for config in tree.findall('.//config'):
+    if config.get('isHidden', 'false') == 'true':
+        print(f"Hidden config: {config.get('key')}")</code></pre>
+
+    <h3>3. Reproducibility Gaps</h3>
+    <table>
+        <tr><th>Reproducibility Risk</th><th>Detection Method</th><th>Test Case</th></tr>
+        <tr><td>Manual filtering steps</td><td>Check for "Interactive" nodes</td><td>Re-execute with different screen sizes</td></tr>
+        <tr><td>Unversioned workflows</td><td>.knwf timestamp analysis</td><td>Git history of workflow files</td></tr>
+        <tr><td>Environment dependencies</td><td>"Python Script" node contents</td><td>requirements.txt cross-check</td></tr>
+    </table>
+
+    <h2>Workpaper Template</h2>
+    <h3>GUI Opacity Findings</h3>
+    <table>
+        <tr><th>Node Type</th><th>Hidden Parameters</th><th>Impact</th><th>Severity</th></tr>
+        <tr><td>"Rule Engine"</td><td>5 unlogged rules</td><td>12% data loss</td><td>High</td></tr>
+        <tr><td>"Column Filter"</td><td>Manual selection</td><td>Bias introduced</td><td>Critical</td></tr>
+        <tr><td>"Missing Value"</td><td>Default imputation</td><td>Wrong median</td><td>Medium</td></tr>
+    </table>
+
+    <h3>Export Readability Findings</h3>
+    <table>
+        <tr><th>Workflow</th><th>"Human-Readable" Score</th><th>Key Opaque Elements</th></tr>
+        <tr><td>Customer_EDA</td><td>2/5</td><td>8 binary-encoded configs</td></tr>
+        <tr><td>Risk_Modeling</td><td>3/5</td><td>Minified JSON conditions</td></tr>
+    </table>
+
+    <h3>Reproducibility Findings</h3>
+    <table>
+        <tr><th>Workflow</th><th>Interactive Nodes</th><th>Environment Drift</th><th>Re-Run Variance</th></tr>
+        <tr><td>Sales_Forecast</td><td>3 sliders</td><td>Python 3.7 → 3.9</td><td>14% output delta</td></tr>
+        <tr><td>Churn_Analysis</td><td>None</td><td>Missing R plugin</td><td>Failed execution</td></tr>
+    </table>
+
+    <h2>Key Risks</h2>
+    <ul>
+        <li>Critical: 22% of filtering decisions made via unreviewed interactive sliders</li>
+        <li>High: Core imputation logic buried in 3-layer nested node configurations</li>
+        <li>Medium: Workflow exports contain 18 binary-encoded parameter blobs</li>
+    </ul>
+
+    <h2>Recommendations</h2>
+    <h3>For GUI Transparency</h3>
+    <pre><code>from knime.workflow import WorkflowReader
+wf = WorkflowReader.load('workflow.knwf')
+wf.generate_markdown_docs(output_file='preprocessing_spec.md')</code></pre>
+
+    <h3>For Export Readability</h3>
+    <pre><code>orange-canvas --workflow-dump workflow.ows > workflow_audit.json
+jq '.' workflow_audit.json > formatted_workflow.json</code></pre>
+
+    <h3>For Reproducibility</h3>
+    <pre><code># KNIME snapshot
+knime -application org.eclipse.equinox.p2.director \
+  -listInstalledRoots > knime_versions.txt
+
+# Orange requirements
+pip freeze > orange_requirements.txt</code></pre>
+
+    <h2>Auditor Notes</h2>
+    <ul>
+        <li>Required Attachments:
+            <ul>
+                <li>Workflow annotation screenshots</li>
+                <li>XML/JSON export analysis reports</li>
+                <li>Environment specification files</li>
+            </ul>
+        </li>
+        <li>Sign-off:
+            <ul>
+                <li>Auditor: [Your Name]</li>
+                <li>Workflow Owner: [Owner Name]</li>
+                <li>QA Engineer: [QA Name]</li>
+                <li>Date: [Date]</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>Standards References</h3>
+    <ul>
+        <li>FDA 21 CFR Part 11 (Electronic Records)</li>
+        <li>KNIME Best Practices Guide v4.7</li>
+        <li>Orange Data Mining Documentation (Reproducibility Chapter)</li>
+    </ul>
+</body>
+</html>

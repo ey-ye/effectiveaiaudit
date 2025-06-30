@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Data Preprocessing Audit Workpaper: Scikit-Learn Risks</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 960px; margin: auto; }
+        h1, h2, h3 { color: #2c3e50; }
+        code, pre { background: #f4f4f4; padding: 8px; display: block; white-space: pre-wrap; border-left: 4px solid #ccc; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 20px 40px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>AI Data Preprocessing Audit Workpaper: Scikit-Learn Risks</h1>
+
+    <h2>Audit Focus Area</h2>
+    <p>Evaluating transparency and statistical assumption risks in Scikit-Learn preprocessing pipelines:</p>
+    <ul>
+        <li>Black Box Pipelines: Reproducible but opaque transformations</li>
+        <li>Normality Assumptions: Implicit Gaussian distribution requirements</li>
+        <li>Silent Behavior: Default behaviors that may distort data</li>
+    </ul>
+
+    <h2>Evidence Collection Methodology</h2>
+
+    <h3>1. Pipeline Transparency Risks</h3>
+    <strong>Where to Find Evidence:</strong>
+    <table>
+        <thead>
+            <tr><th>Risk Indicator</th><th>Investigation Method</th><th>Documentation Reference</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Composite transformers masking steps</td>
+                <td>Inspect Pipeline/ColumnTransformer objects for nested transforms</td>
+                <td>sklearn.compose.make_column_transformer</td>
+            </tr>
+            <tr>
+                <td>Untracked hyperparameters</td>
+                <td>Check get_params() vs actual behavior</td>
+                <td>OneHotEncoder(drop='first') default changes</td>
+            </tr>
+            <tr>
+                <td>Non-invertible transformations</td>
+                <td>Identify PowerTransformer, QuantileTransformer</td>
+                <td>inverse_transform availability</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <strong>Test Code:</strong>
+    <pre><code>for i, (name, step) in enumerate(pipeline.steps):
+    if not hasattr(step, 'get_feature_names_out'):
+        print(f"Step {i} ({name}) lacks feature naming")</code></pre>
+
+    <h3>2. Normality Assumptions</h3>
+    <strong>Where to Find Evidence:</strong>
+    <table>
+        <thead>
+            <tr><th>Assumption</th><th>Problematic Transformers</th><th>Data Check</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Gaussian features</td><td>StandardScaler, PCA</td><td>Check feature kurtosis</td></tr>
+            <tr><td>Linear relationships</td><td>LinearRegression preprocessors</td><td>Rank correlation tests</td></tr>
+            <tr><td>Symmetric outliers</td><td>RobustScaler</td><td>Quantile analysis</td></tr>
+        </tbody>
+    </table>
+
+    <strong>Statistical Tests:</strong>
+    <pre><code>from scipy import stats
+
+for col in X_train.columns:
+    _, p = stats.normaltest(X_train[col])
+    if p < 0.05 and col in scaler.feature_names_in_:
+        print(f"Non-Gaussian feature {col} being scaled")</code></pre>
+
+    <h2>Workpaper Template</h2>
+    <h3>Pipeline Transparency Findings</h3>
+    <table>
+        <thead><tr><th>Pipeline Component</th><th>Transparency Issue</th><th>Evidence Location</th><th>Severity</th></tr></thead>
+        <tbody>
+            <tr><td>ColumnTransformer</td><td>Nested Pipeline obscures 3 processing steps</td><td>preprocessing.py L45-62</td><td>High</td></tr>
+            <tr><td>SimpleImputer</td><td>No record of missing value counts</td><td>Fit log missing</td><td>Medium</td></tr>
+            <tr><td>PowerTransformer</td><td>No inverse_transform available</td><td>Model deployment code</td><td>Critical</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Normality Assumption Findings</h3>
+    <table>
+        <thead><tr><th>Feature</th><th>Preprocessor</th><th>Normality Test (p-value)</th><th>Impact</th></tr></thead>
+        <tbody>
+            <tr><td>income</td><td>StandardScaler</td><td>2.1e-16 (non-normal)</td><td>High</td></tr>
+            <tr><td>age</td><td>QuantileTransformer</td><td>0.83 (normal)</td><td>Low</td></tr>
+            <tr><td>purchase_freq</td><td>RobustScaler</td><td>3.4e-9 (power law)</td><td>Medium</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Key Risks</h2>
+    <ul>
+        <li><strong>Critical:</strong> PowerTransformer on financial data with no inverse for explainability</li>
+        <li><strong>High:</strong> Nested pipelines hide 4 sequential transformations of sensitive features</li>
+        <li><strong>Medium:</strong> 68% of scaled features violate normality assumptions (Shapiro-Wilk p&lt;0.01)</li>
+    </ul>
+
+    <h2>Recommendations</h2>
+
+    <h3>Transparency Fixes</h3>
+    <pre><code>from sklearn import set_config
+set_config(display='diagram')  # Enable visual tracing
+
+class LoggingTransformer(BaseEstimator, TransformerMixin):
+    def transform(self, X):
+        print(f"Shape: {X.shape}, NaNs: {np.isnan(X).sum()}")
+        return X</code></pre>
+
+    <h3>Normality Solutions</h3>
+    <pre><code>from sklearn.preprocessing import RobustScaler, QuantileTransformer
+
+pipeline.steps.insert(1, ('dist_check', DistributionChecker()))
+
+auto_scaler = ColumnTransformer([
+    ('robust', RobustScaler(), make_selector(dtype_include=np.number)),
+    ('quantile', QuantileTransformer(), ['income','purchase_amount'])
+])</code></pre>
+
+    <h2>Auditor Notes</h2>
+    <ul>
+        <li>Pipeline visualization (pipeline.plot() output)</li>
+        <li>Pre/post-scaling distribution plots</li>
+        <li>get_feature_names_out() completeness report</li>
+    </ul>
+
+    <h3>Sign-off</h3>
+    <table>
+        <thead><tr><th>Auditor</th><th>Date</th><th>ML Engineer</th><th>Compliance</th></tr></thead>
+        <tbody><tr><td>[Your Name]</td><td>[Date]</td><td>[Engineer Name]</td><td>[Approver Name]</td></tr></tbody>
+    </table>
+
+    <h2>Standards References</h2>
+    <ul>
+        <li>EU AI Act Article 13 (Transparency)</li>
+        <li>NIST AI RMF (Explainability)</li>
+        <li>IEEE 7001-2021 (Algorithmic Bias Considerations)</li>
+    </ul>
+</body>
+</html>
