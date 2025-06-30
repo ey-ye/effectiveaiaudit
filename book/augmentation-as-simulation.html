@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Augmentation as Simulation</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #fdfdfd;
+      color: #222;
+      padding: 2em;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: auto;
+    }
+    h1, h2 {
+      color: #003366;
+    }
+    h1 {
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 0.2em;
+    }
+    ul {
+      padding-left: 1.2em;
+    }
+    code {
+      background-color: #eee;
+      padding: 0.1em 0.3em;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Augmentation as Simulation</h1>
+  <p><strong>Version 1.0 – Public</strong></p>
+
+  <p>
+    Data augmentation has evolved from a model optimization technique into a foundational part of many modern machine learning pipelines. 
+    While its benefits are well recognized, this chapter discusses the audit implications of augmentation when it begins to substitute for real-world data collection.
+  </p>
+
+  <h2>Understanding Augmentation</h2>
+  <p>
+    Augmentation refers to the process of creating modified versions of existing data to improve model robustness or generalization. 
+    Common techniques include rotation, cropping, noise injection, and synonym replacement. 
+    In some domains, generative methods are now used to simulate entirely new examples.
+  </p>
+
+  <h2>Why It Matters in Audit</h2>
+  <ul>
+    <li>Augmentation can significantly alter the original data distribution.</li>
+    <li>Excessive augmentation may create a misleading impression of dataset scale or diversity.</li>
+    <li>Without proper documentation, the boundary between observed and synthetic data becomes unclear.</li>
+    <li>Applied post-split, augmentation can unintentionally contaminate test sets.</li>
+  </ul>
+
+  <h2>Common Issues Observed</h2>
+  <ul>
+    <li>High synthetic-to-original ratios are not disclosed in reporting.</li>
+    <li>Augmentation pipelines are rarely versioned or reviewed independently.</li>
+    <li>Performance metrics are reported without considering augmentation effects.</li>
+  </ul>
+
+  <h2>Audit Considerations</h2>
+  <ul>
+    <li>Was augmentation used? If so, which methods and to what extent?</li>
+    <li>Was it applied before or after the test split?</li>
+    <li>Is the model’s performance reproducible without augmentation?</li>
+    <li>Are augmentation strategies peer-reviewed and documented?</li>
+  </ul>
+
+  <h2>Policy Recommendations</h2>
+  <p>
+    When augmentation contributes significantly to training volume, it should be disclosed as a synthetic data process. 
+    Organizations are encouraged to version augmentation pipelines and make their effects transparent during audit reviews.
+  </p>
+
+  <p><strong>Maintainer:</strong> <a href="https://aiauditframework.com">aiauditframework.com</a></p>
+</body>
+</html>
